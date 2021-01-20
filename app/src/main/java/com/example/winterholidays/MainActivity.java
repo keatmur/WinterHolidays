@@ -24,7 +24,6 @@ public class MainActivity extends AppCompatActivity {
     private NotificationManager notificationManager;
     private   NotificationCompat.Builder nBuilder;
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -38,7 +37,6 @@ public class MainActivity extends AppCompatActivity {
         });
 
     }
-
     private NotificationCompat.Builder getNotificationBilder() {
         if (android.os.Build.VERSION.SDK_INT <= android.os.Build.VERSION_CODES.O)
         {
@@ -58,7 +56,6 @@ public class MainActivity extends AppCompatActivity {
         Intent notificationIntent = new Intent(this,MainActivity.class);
         PendingIntent contentIntent = PendingIntent.getActivity(this,
                 0,notificationIntent, 0);
-
        nBuilder.setContentIntent(contentIntent)
                .setSmallIcon(R.drawable.ic_launcher_background)
                 .setContentTitle("Notifiction")
