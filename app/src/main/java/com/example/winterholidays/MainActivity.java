@@ -9,60 +9,85 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.util.Log;
+import android.widget.ProgressBar;
 
-@RequiresApi(api = Build.VERSION_CODES.O)
 public class MainActivity extends AppCompatActivity {
 
-    private static String CHANNEL_ID="WinterHolidays";
-    private  static  int importance = NotificationManager.IMPORTANCE_LOW;
-    private int number=0;
-    private NotificationManager notificationManager;
-    private   NotificationCompat.Builder nBuilder;
+    Intent mIntent;
+    MyService myService;
+    boolean bound;
+    ProgreesReciver progreesReciver;
+    IntentFilter intentFilter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-         notificationManager= (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-         nBuilder = getNotificationBilder();
         setContentView(R.layout.activity_main);
-        findViewById(R.id.button1).setOnClickListener( v -> {
-            getNotification(number);
-            Log.i("Notification","clicl bootom" ) ;
-            number++;
+
+        mIntent = new Intent(this, MyService.class);
+        ProgressBar progressBar = findViewById(R.id.ma_pb);
+        OnProgressListener onProgressListener = new OnProgressListener() {
+            @Override
+            public void updateProgress(int progress) {
+                progressBar.setProgress(progress);
+            }
+        };
+        progreesReciver = new ProgreesReciver(onProgressListener);
+        intentFilter = new IntentFilter(progreesReciver.SIMPLE_ACTION);
+
+
+        bindService(mIntent, sConn, 0);
+        startService(mIntent);
+
+        findViewById(R.id.ma_button).setOnClickListener(v -> {
+            if (!bound) return;
+            myService.downProgress();
+
         });
 
+
     }
-    private NotificationCompat.Builder getNotificationBilder() {
-        if (android.os.Build.VERSION.SDK_INT <= android.os.Build.VERSION_CODES.O)
-        {
-            return  new NotificationCompat.Builder(this);
-        } else
-        {
-            if (notificationManager.getNotificationChannel(CHANNEL_ID)==null) {
-                NotificationChannel channel = new NotificationChannel(CHANNEL_ID, "WinterHolidays", NotificationManager.IMPORTANCE_HIGH);
-                notificationManager.createNotificationChannel(channel);
-            }
-            return new NotificationCompat.Builder(this, CHANNEL_ID);
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        registerReceiver(progreesReciver, intentFilter);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        unregisterReceiver(progreesReciver);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (!bound) return;
+        unbindService(sConn);
+        bound = false;
+    }
+
+    ServiceConnection sConn = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            myService = ((MyService.MyBinder) service).getService();
+            bound = true;
         }
 
-    }
-
-    private void getNotification(int number){
-        Intent notificationIntent = new Intent(this,MainActivity.class);
-        PendingIntent contentIntent = PendingIntent.getActivity(this,
-                0,notificationIntent, 0);
-       nBuilder.setContentIntent(contentIntent)
-               .setSmallIcon(R.drawable.ic_launcher_background)
-                .setContentTitle("Notifiction")
-                .setContentText("This notification №"+ number)
-                .setAutoCancel(true);
-        notificationManager.notify(number,nBuilder.build());
-
-    }
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            bound = false;
+        }
+    };
 }
 
